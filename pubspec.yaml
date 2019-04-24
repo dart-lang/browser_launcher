@@ -10,3 +10,6 @@ environment:
   sdk: '>=2.2.0-dev <3.0.0'
 
 dependencies:
+
+dev_dependnecies:
+  pedantic: ^1.5.0
