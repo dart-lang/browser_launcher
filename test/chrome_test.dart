@@ -2,6 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+@OnPlatform({'windows': Skip('appveyor is not setup to install Chrome')})
 import 'dart:async';
 import 'dart:io';
 
@@ -17,7 +18,7 @@ void main() {
     final dataDir = Directory(p.joinAll(
         [Directory.current.path, '.dart_tool', 'webdev', 'chrome_profile']))
       ..createSync(recursive: true);
-    chrome = await Chrome.startWithPort(
+    chrome = await Chrome.startWithDebugPort(
       [_googleUrl],
       userDataDir: dataDir.path,
       remoteDebuggingPort: port,
@@ -44,12 +45,12 @@ void main() {
   test('can launch chrome', () async {
     await launchChrome();
     expect(chrome, isNull);
-  }, onPlatform: {'windows': Skip('appveyor is not setup to install Chrome')});
+  });
 
   test('can launch chrome with debug port', () async {
     await launchChromeWithDebugPort();
     expect(chrome, isNotNull);
-  }, onPlatform: {'windows': Skip('appveyor is not setup to install Chrome')});
+  });
 
   test('debugger is working', () async {
     await launchChromeWithDebugPort();
@@ -58,12 +59,12 @@ void main() {
         tabs,
         contains(const TypeMatcher<ChromeTab>()
             .having((t) => t.url, 'url', _googleUrl)));
-  }, onPlatform: {'windows': Skip('appveyor is not setup to install Chrome')});
+  });
 
   test('uses open debug port if provided port is 0', () async {
     await launchChromeWithDebugPort(port: 0);
     expect(chrome.debugPort, isNot(equals(0)));
-  }, onPlatform: {'windows': Skip('appveyor is not setup to install Chrome')});
+  });
 }
 
 const _googleUrl = 'https://www.google.com/';

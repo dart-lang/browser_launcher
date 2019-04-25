@@ -14,31 +14,32 @@ const _linuxExecutable = 'google-chrome';
 const _macOSExecutable =
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const _windowsExecutable = r'Google\Chrome\Application\chrome.exe';
-const _windowsPrefixes = ['LOCALAPPDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)'];
+const _windowsPrefixes = {'LOCALAPPDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)'};
 
 String get _executable {
-  final windowsPrefixes =
-      _windowsPrefixes.map((name) => Platform.environment[name]).toList();
   if (Platform.environment.containsKey(_chromeEnvironment)) {
     return Platform.environment[_chromeEnvironment];
   }
   if (Platform.isLinux) return _linuxExecutable;
   if (Platform.isMacOS) return _macOSExecutable;
   if (Platform.isWindows) {
+    final windowsPrefixes =
+        _windowsPrefixes.map((name) => Platform.environment[name]).toList();
     return p.join(
-        windowsPrefixes.firstWhere((prefix) {
-          if (prefix == null) return false;
-          final path = p.join(prefix, _windowsExecutable);
-          return File(path).existsSync();
-        }, orElse: () => '.'),
-        _windowsExecutable);
+      windowsPrefixes.firstWhere((prefix) {
+        if (prefix == null) return false;
+        final path = p.join(prefix, _windowsExecutable);
+        return File(path).existsSync();
+      }, orElse: () => '.'),
+      _windowsExecutable,
+    );
   }
   throw StateError('Unexpected platform type.');
 }
 
 var _currentCompleter = Completer<Chrome>();
 
-/// A class for managing an instance of Chrome.
+/// Manager for an instance of Chrome.
 class Chrome {
   Chrome._(
     this.debugPort,
@@ -58,8 +59,9 @@ class Chrome {
 
   /// Starts Chrome with the given arguments and a specific port.
   ///
-  /// Each url in [urls] will be loaded in a separate tab.
-  static Future<Chrome> startWithPort(
+  /// Only one instance of Chrome can run at a time. Each url in [urls] will be
+  /// loaded in a separate tab.
+  static Future<Chrome> startWithDebugPort(
     List<String> urls, {
     String userDataDir,
     int remoteDebuggingPort,
@@ -91,6 +93,8 @@ class Chrome {
     );
 
     // Wait until the DevTools are listening before trying to connect.
+    // TODO(kenzie): integrate changes from
+    // https://github.com/dart-lang/webdev/pull/341
     await process.stderr
         .transform(utf8.decoder)
         .transform(const LineSplitter())
@@ -108,7 +112,8 @@ class Chrome {
 
   /// Starts Chrome with the given arguments.
   ///
-  /// Each url in [urls] will be loaded in a separate tab.
+  /// Only one instance of Chrome can run at a time. Each url in [urls] will be
+  /// loaded in a separate tab.
   static Future<void> start(
     List<String> urls, {
     String userDataDir,
