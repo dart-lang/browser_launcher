@@ -15,7 +15,6 @@ const _linuxExecutable = 'google-chrome';
 const _macOSExecutable =
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const _windowsExecutable = r'Google\Chrome\Application\chrome.exe';
-const _windowsPrefixes = {'LOCALAPPDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)'};
 
 String get _executable {
   if (Platform.environment.containsKey(_chromeEnvironment)) {
@@ -24,8 +23,11 @@ String get _executable {
   if (Platform.isLinux) return _linuxExecutable;
   if (Platform.isMacOS) return _macOSExecutable;
   if (Platform.isWindows) {
-    final windowsPrefixes =
-        _windowsPrefixes.map((name) => Platform.environment[name]).toList();
+    final windowsPrefixes = [
+      Platform.environment['LOCALAPPDATA'],
+      Platform.environment['PROGRAMFILES'],
+      Platform.environment['PROGRAMFILES(X86)']
+    ];
     return p.join(
       windowsPrefixes.firstWhere((prefix) {
         if (prefix == null) return false;
