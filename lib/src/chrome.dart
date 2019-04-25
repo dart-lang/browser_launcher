@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:async/async.dart';
 import 'package:path/path.dart' as p;
 import 'package:webkit_inspection_protocol/webkit_inspection_protocol.dart';
 
@@ -63,45 +64,52 @@ class Chrome {
   /// loaded in a separate tab.
   static Future<Chrome> startWithDebugPort(
     List<String> urls, {
-    String userDataDir,
-    int remoteDebuggingPort,
-    bool disableBackgroundTimerThrottling = false,
-    bool disableExtensions = false,
-    bool disablePopupBlocking = false,
-    bool bwsi = false,
-    bool noFirstRun = false,
-    bool noDefaultBrowserCheck = false,
-    bool disableDefaultApps = false,
-    bool disableTranslate = false,
+    int debugPort,
+    List<String> chromeArgs = const [],
   }) async {
-    final port = remoteDebuggingPort == null || remoteDebuggingPort == 0
-        ? await findUnusedPort()
-        : remoteDebuggingPort;
+    final dataDir = Directory(p.joinAll(
+        [Directory.current.path, '.dart_tool', 'webdev', 'chrome_profile']));
+    final activePortFile = File(p.join(dataDir.path, 'DevToolsActivePort'));
+    // If we are reusing the Chrome profile we'll need to be able to read the
+    // DevToolsActivePort to connect the debugger. When a non-zero debugging
+    // port is provided Chrome will not write the DevToolsActivePort file and
+    // therefore we can not reuse the profile.
+    if (dataDir.existsSync() && !activePortFile.existsSync()) {
+      dataDir.deleteSync(recursive: true);
+    }
+    dataDir.createSync(recursive: true);
 
-    final process = await _startProcess(
-      urls,
-      userDataDir: userDataDir,
-      remoteDebuggingPort: port,
-      disableBackgroundTimerThrottling: disableBackgroundTimerThrottling,
-      disableExtensions: disableExtensions,
-      disablePopupBlocking: disablePopupBlocking,
-      bwsi: bwsi,
-      noFirstRun: noFirstRun,
-      noDefaultBrowserCheck: noDefaultBrowserCheck,
-      disableDefaultApps: disableDefaultApps,
-      disableTranslate: disableTranslate,
-    );
+    int port = debugPort == null ? 0 : debugPort;
+    final args = chromeArgs
+      ..addAll([
+        // Using a tmp directory ensures that a new instance of chrome launches
+        // allowing for the remote debug port to be enabled.
+        '--user-data-dir=${dataDir.path}',
+        '--remote-debugging-port=$port',
+      ]);
+
+    final process = await _startProcess(urls, args: args);
+    final output = StreamGroup.merge([
+      process.stderr.transform(utf8.decoder).transform(const LineSplitter()),
+      process.stdout.transform(utf8.decoder).transform(const LineSplitter())
+    ]);
 
     // Wait until the DevTools are listening before trying to connect.
-    // TODO(kenzie): integrate changes from
-    // https://github.com/dart-lang/webdev/pull/341
-    await process.stderr
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .firstWhere((line) => line.startsWith('DevTools listening'))
+    await output
+        .firstWhere((line) =>
+            line.startsWith('DevTools listening') ||
+            line.startsWith('Opening in existing'))
         .timeout(Duration(seconds: 60),
             onTimeout: () =>
                 throw Exception('Unable to connect to Chrome DevTools.'));
+
+    // The DevToolsActivePort file is only written if 0 is provided.
+    if (port == 0) {
+      if (!activePortFile.existsSync()) {
+        throw ChromeError("Can't read DevToolsActivePort file.");
+      }
+      port = int.parse(activePortFile.readAsLinesSync().first);
+    }
 
     return _connect(Chrome._(
       port,
@@ -112,85 +120,20 @@ class Chrome {
 
   /// Starts Chrome with the given arguments.
   ///
-  /// Only one instance of Chrome can run at a time. Each url in [urls] will be
-  /// loaded in a separate tab.
+  /// Each url in [urls] will be loaded in a separate tab.
   static Future<void> start(
     List<String> urls, {
-    String userDataDir,
-    int remoteDebuggingPort,
-    bool disableBackgroundTimerThrottling = false,
-    bool disableExtensions = false,
-    bool disablePopupBlocking = false,
-    bool bwsi = false,
-    bool noFirstRun = false,
-    bool noDefaultBrowserCheck = false,
-    bool disableDefaultApps = false,
-    bool disableTranslate = false,
+    List<String> chromeArgs = const [],
   }) async {
-    await _startProcess(
-      urls,
-      userDataDir: userDataDir,
-      remoteDebuggingPort: remoteDebuggingPort,
-      disableBackgroundTimerThrottling: disableBackgroundTimerThrottling,
-      disableExtensions: disableExtensions,
-      disablePopupBlocking: disablePopupBlocking,
-      bwsi: bwsi,
-      noFirstRun: noFirstRun,
-      noDefaultBrowserCheck: noDefaultBrowserCheck,
-      disableDefaultApps: disableDefaultApps,
-      disableTranslate: disableTranslate,
-    );
+    await _startProcess(urls, args: chromeArgs);
   }
 
   static Future<Process> _startProcess(
     List<String> urls, {
-    String userDataDir,
-    int remoteDebuggingPort,
-    bool disableBackgroundTimerThrottling = false,
-    bool disableExtensions = false,
-    bool disablePopupBlocking = false,
-    bool bwsi = false,
-    bool noFirstRun = false,
-    bool noDefaultBrowserCheck = false,
-    bool disableDefaultApps = false,
-    bool disableTranslate = false,
+    List<String> args = const [],
   }) async {
-    final List<String> args = [];
-    if (userDataDir != null) {
-      args.add('--user-data-dir=$userDataDir');
-    }
-    if (remoteDebuggingPort != null) {
-      args.add('--remote-debugging-port=$remoteDebuggingPort');
-    }
-    if (disableBackgroundTimerThrottling) {
-      args.add('--disable-background-timer-throttling');
-    }
-    if (disableExtensions) {
-      args.add('--disable-extensions');
-    }
-    if (disablePopupBlocking) {
-      args.add('--disable-popup-blocking');
-    }
-    if (bwsi) {
-      args.add('--bwsi');
-    }
-    if (noFirstRun) {
-      args.add('--no-first-run');
-    }
-    if (noDefaultBrowserCheck) {
-      args.add('--no-default-browser-check');
-    }
-    if (disableDefaultApps) {
-      args.add('--disable-default-apps');
-    }
-    if (disableTranslate) {
-      args.add('--disable-translate');
-    }
-    args..addAll(urls);
-
-    final process = await Process.start(_executable, args);
-
-    return process;
+    final processArgs = args.toList()..addAll(urls);
+    return await Process.start(_executable, processArgs);
   }
 
   static Future<Chrome> _connect(Chrome chrome) async {
@@ -224,22 +167,4 @@ class ChromeError extends Error {
 
   @override
   String toString() => 'ChromeError: $details';
-}
-
-/// Returns a port that is probably, but not definitely, not in use.
-///
-/// This has a built-in race condition: another process may bind this port at
-/// any time after this call has returned.
-Future<int> findUnusedPort() async {
-  int port;
-  ServerSocket socket;
-  try {
-    socket =
-        await ServerSocket.bind(InternetAddress.loopbackIPv6, 0, v6Only: true);
-  } on SocketException {
-    socket = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
-  }
-  port = socket.port;
-  await socket.close();
-  return port;
 }

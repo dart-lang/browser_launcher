@@ -18,19 +18,21 @@ void main() {
     final dataDir = Directory(p.joinAll(
         [Directory.current.path, '.dart_tool', 'webdev', 'chrome_profile']))
       ..createSync(recursive: true);
-    chrome = await Chrome.startWithDebugPort(
-      [_googleUrl],
-      userDataDir: dataDir.path,
-      remoteDebuggingPort: port,
-      disableBackgroundTimerThrottling: true,
-      disableExtensions: true,
-      disablePopupBlocking: true,
-      bwsi: true,
-      noFirstRun: true,
-      noDefaultBrowserCheck: true,
-      disableDefaultApps: true,
-      disableTranslate: true,
-    );
+    chrome = await Chrome.startWithDebugPort([_googleUrl],
+        debugPort: port,
+        chromeArgs: [
+          // When the DevTools has focus we don't want to slow down the application.
+          '--disable-background-timer-throttling',
+          // Since we are using a temp profile, disable features that slow the
+          // Chrome launch.
+          '--disable-extensions',
+          '--disable-popup-blocking',
+          '--bwsi',
+          '--no-first-run',
+          '--no-default-browser-check',
+          '--disable-default-apps',
+          '--disable-translate',
+        ]);
   }
 
   Future<void> launchChrome() async {
@@ -65,6 +67,30 @@ void main() {
     await launchChromeWithDebugPort(port: 0);
     expect(chrome.debugPort, isNot(equals(0)));
   });
+
+  test('can provide a specific debug port', () async {
+    var port = await findUnusedPort();
+    await launchChromeWithDebugPort(port: port);
+    expect(chrome.debugPort, port);
+  });
 }
 
 const _googleUrl = 'https://www.google.com/';
+
+/// Returns a port that is probably, but not definitely, not in use.
+///
+/// This has a built-in race condition: another process may bind this port at
+/// any time after this call has returned.
+Future<int> findUnusedPort() async {
+  int port;
+  ServerSocket socket;
+  try {
+    socket =
+        await ServerSocket.bind(InternetAddress.loopbackIPv6, 0, v6Only: true);
+  } on SocketException {
+    socket = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+  }
+  port = socket.port;
+  await socket.close();
+  return port;
+}
