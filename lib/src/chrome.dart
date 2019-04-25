@@ -14,13 +14,11 @@ const _linuxExecutable = 'google-chrome';
 const _macOSExecutable =
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const _windowsExecutable = r'Google\Chrome\Application\chrome.exe';
-var _windowsPrefixes = [
-  Platform.environment['LOCALAPPDATA'],
-  Platform.environment['PROGRAMFILES'],
-  Platform.environment['PROGRAMFILES(X86)']
-];
+const _windowsPrefixes = ['LOCALAPPDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)'];
 
 String get _executable {
+  final windowsPrefixes =
+      _windowsPrefixes.map((name) => Platform.environment[name]).toList();
   if (Platform.environment.containsKey(_chromeEnvironment)) {
     return Platform.environment[_chromeEnvironment];
   }
@@ -28,7 +26,7 @@ String get _executable {
   if (Platform.isMacOS) return _macOSExecutable;
   if (Platform.isWindows) {
     return p.join(
-        _windowsPrefixes.firstWhere((prefix) {
+        windowsPrefixes.firstWhere((prefix) {
           if (prefix == null) return false;
           final path = p.join(prefix, _windowsExecutable);
           return File(path).existsSync();
@@ -220,9 +218,7 @@ class ChromeError extends Error {
   ChromeError(this.details);
 
   @override
-  String toString() {
-    return 'ChromeError: $details';
-  }
+  String toString() => 'ChromeError: $details';
 }
 
 /// Returns a port that is probably, but not definitely, not in use.
