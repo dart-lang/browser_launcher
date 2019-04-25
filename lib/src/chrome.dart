@@ -65,14 +65,14 @@ class Chrome {
     List<String> urls, {
     String userDataDir,
     int remoteDebuggingPort,
-    bool disableBackgroundTimerThrottling = false,
-    bool disableExtensions = false,
-    bool disablePopupBlocking = false,
-    bool bwsi = false,
-    bool noFirstRun = false,
-    bool noDefaultBrowserCheck = false,
-    bool disableDefaultApps = false,
-    bool disableTranslate = false,
+    bool disableBackgroundTimerThrottling,
+    bool disableExtensions,
+    bool disablePopupBlocking,
+    bool bwsi,
+    bool noFirstRun,
+    bool noDefaultBrowserCheck,
+    bool disableDefaultApps,
+    bool disableTranslate,
   }) async {
     final port = remoteDebuggingPort == null || remoteDebuggingPort == 0
         ? await findUnusedPort()
@@ -115,14 +115,14 @@ class Chrome {
     List<String> urls, {
     String userDataDir,
     int remoteDebuggingPort,
-    bool disableBackgroundTimerThrottling = false,
-    bool disableExtensions = false,
-    bool disablePopupBlocking = false,
-    bool bwsi = false,
-    bool noFirstRun = false,
-    bool noDefaultBrowserCheck = false,
-    bool disableDefaultApps = false,
-    bool disableTranslate = false,
+    bool disableBackgroundTimerThrottling,
+    bool disableExtensions,
+    bool disablePopupBlocking,
+    bool bwsi,
+    bool noFirstRun,
+    bool noDefaultBrowserCheck,
+    bool disableDefaultApps,
+    bool disableTranslate,
   }) async {
     await _startProcess(
       urls,
