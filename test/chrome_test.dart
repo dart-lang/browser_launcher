@@ -15,9 +15,6 @@ void main() {
   Chrome chrome;
 
   Future<void> launchChromeWithDebugPort({int port}) async {
-    final dataDir = Directory(p.joinAll(
-        [Directory.current.path, '.dart_tool', 'webdev', 'chrome_profile']))
-      ..createSync(recursive: true);
     chrome = await Chrome.startWithDebugPort([_googleUrl],
         debugPort: port,
         chromeArgs: [
