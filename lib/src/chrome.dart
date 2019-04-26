@@ -112,9 +112,14 @@ class Chrome {
   /// Each url in [urls] will be loaded in a separate tab.
   static Future<void> start(
     List<String> urls, {
+    bool headless = false,
     List<String> chromeArgs = const [],
   }) async {
-    await _startProcess(urls, args: chromeArgs);
+    final List<String> args = chromeArgs;
+    if (headless) {
+      args.add('--headless');
+    }
+    await _startProcess(urls, args: args);
   }
 
   static Future<Process> _startProcess(
