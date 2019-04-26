@@ -3,7 +3,7 @@ import 'package:browser_launcher/browser_launcher.dart';
 const _googleUrl = 'https://www.google.com/';
 const _googleImagesUrl = 'https://www.google.com/imghp?hl=en';
 
-void main() async {
+Future<void> main() async {
   // Launches a chrome browser with two tabs open to [_googleUrl] and
   // [_googleImagesUrl].
   await Chrome.start([_googleUrl, _googleImagesUrl]);
