@@ -4,10 +4,8 @@
 
 @OnPlatform({'windows': Skip('appveyor is not setup to install Chrome')})
 import 'dart:async';
-import 'dart:io';
 
 import 'package:browser_launcher/src/chrome.dart';
-import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 import 'package:webkit_inspection_protocol/webkit_inspection_protocol.dart';
 
@@ -15,21 +13,7 @@ void main() {
   Chrome chrome;
 
   Future<void> launchChromeWithDebugPort({int port}) async {
-    chrome = await Chrome.startWithDebugPort([_googleUrl],
-        debugPort: port,
-        chromeArgs: [
-          // When the DevTools has focus we don't want to slow down the application.
-          '--disable-background-timer-throttling',
-          // Since we are using a temp profile, disable features that slow the
-          // Chrome launch.
-          '--disable-extensions',
-          '--disable-popup-blocking',
-          '--bwsi',
-          '--no-first-run',
-          '--no-default-browser-check',
-          '--disable-default-apps',
-          '--disable-translate',
-        ]);
+    chrome = await Chrome.startWithDebugPort([_googleUrl], debugPort: port);
   }
 
   Future<void> launchChrome() async {

@@ -6,7 +6,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:async/async.dart';
 import 'package:path/path.dart' as p;
 import 'package:webkit_inspection_protocol/webkit_inspection_protocol.dart';
 
@@ -40,8 +39,6 @@ String get _executable {
   throw StateError('Unexpected platform type.');
 }
 
-var _currentCompleter = Completer<Chrome>();
-
 /// Manager for an instance of Chrome.
 class Chrome {
   Chrome._(
@@ -61,8 +58,6 @@ class Chrome {
   static Future<Chrome> fromExisting(int port) async =>
       _connect(Chrome._(port, ChromeConnection('localhost', port)));
 
-  static Future<Chrome> get connectedInstance => _currentCompleter.future;
-
   /// Starts Chrome with the given arguments and a specific port.
   ///
   /// Only one instance of Chrome can run at a time. Each url in [urls] will be
@@ -71,19 +66,28 @@ class Chrome {
     List<String> urls, {
     int debugPort,
     bool headless = false,
-    List<String> chromeArgs = const [],
   }) async {
     final dataDir = Directory.systemTemp.createTempSync();
     final port = debugPort == null || debugPort == 0
         ? await findUnusedPort()
         : debugPort;
-    final args = chromeArgs
-      ..addAll([
-        // Using a tmp directory ensures that a new instance of chrome launches
-        // allowing for the remote debug port to be enabled.
-        '--user-data-dir=${dataDir.path}',
-        '--remote-debugging-port=$port',
-      ]);
+    final args = [
+      // Using a tmp directory ensures that a new instance of chrome launches
+      // allowing for the remote debug port to be enabled.
+      '--user-data-dir=${dataDir.path}',
+      '--remote-debugging-port=$port',
+      // When the DevTools has focus we don't want to slow down the application.
+      '--disable-background-timer-throttling',
+      // Since we are using a temp profile, disable features that slow the
+      // Chrome launch.
+      '--disable-extensions',
+      '--disable-popup-blocking',
+      '--bwsi',
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--disable-default-apps',
+      '--disable-translate',
+    ];
     if (headless) {
       args.add('--headless');
     }
@@ -112,13 +116,8 @@ class Chrome {
   /// Each url in [urls] will be loaded in a separate tab.
   static Future<void> start(
     List<String> urls, {
-    bool headless = false,
-    List<String> chromeArgs = const [],
+    List<String> args = const [],
   }) async {
-    final List<String> args = chromeArgs;
-    if (headless) {
-      args.add('--headless');
-    }
     await _startProcess(urls, args: args);
   }
 
@@ -131,9 +130,6 @@ class Chrome {
   }
 
   static Future<Chrome> _connect(Chrome chrome) async {
-    if (_currentCompleter.isCompleted) {
-      throw ChromeError('Only one instance of chrome can be started.');
-    }
     // The connection is lazy. Try a simple call to make sure the provided
     // connection is valid.
     try {
@@ -143,12 +139,10 @@ class Chrome {
       throw ChromeError(
           'Unable to connect to Chrome debug port: ${chrome.debugPort}\n $e');
     }
-    _currentCompleter.complete(chrome);
     return chrome;
   }
 
   Future<void> close() async {
-    if (_currentCompleter.isCompleted) _currentCompleter = Completer<Chrome>();
     chromeConnection.close();
     _process?.kill(ProcessSignal.sigkill);
     await _process?.exitCode;
