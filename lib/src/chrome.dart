@@ -48,11 +48,14 @@ class Chrome {
     this.debugPort,
     this.chromeConnection, {
     Process process,
-  }) : _process = process;
+    Directory dataDir,
+  })  : _process = process,
+        _dataDir = dataDir;
 
   final int debugPort;
-  final Process _process;
   final ChromeConnection chromeConnection;
+  final Process _process;
+  final Directory _dataDir;
 
   /// Connects to an instance of Chrome with an open debug port.
   static Future<Chrome> fromExisting(int port) async =>
@@ -67,21 +70,13 @@ class Chrome {
   static Future<Chrome> startWithDebugPort(
     List<String> urls, {
     int debugPort,
+    bool headless = false,
     List<String> chromeArgs = const [],
   }) async {
-    final dataDir = Directory(p.joinAll(
-        [Directory.current.path, '.dart_tool', 'webdev', 'chrome_profile']));
-    final activePortFile = File(p.join(dataDir.path, 'DevToolsActivePort'));
-    // If we are reusing the Chrome profile we'll need to be able to read the
-    // DevToolsActivePort to connect the debugger. When a non-zero debugging
-    // port is provided Chrome will not write the DevToolsActivePort file and
-    // therefore we can not reuse the profile.
-    if (dataDir.existsSync() && !activePortFile.existsSync()) {
-      dataDir.deleteSync(recursive: true);
-    }
-    dataDir.createSync(recursive: true);
-
-    int port = debugPort == null ? 0 : debugPort;
+    final dataDir = Directory.systemTemp.createTempSync();
+    final port = debugPort == null || debugPort == 0
+        ? await findUnusedPort()
+        : debugPort;
     final args = chromeArgs
       ..addAll([
         // Using a tmp directory ensures that a new instance of chrome launches
@@ -89,34 +84,26 @@ class Chrome {
         '--user-data-dir=${dataDir.path}',
         '--remote-debugging-port=$port',
       ]);
+    if (headless) {
+      args.add('--headless');
+    }
 
     final process = await _startProcess(urls, args: args);
-    final output = StreamGroup.merge([
-      process.stderr.transform(utf8.decoder).transform(const LineSplitter()),
-      process.stdout.transform(utf8.decoder).transform(const LineSplitter())
-    ]);
 
     // Wait until the DevTools are listening before trying to connect.
-    await output
-        .firstWhere((line) =>
-            line.startsWith('DevTools listening') ||
-            line.startsWith('Opening in existing'))
+    await process.stderr
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .firstWhere((line) => line.startsWith('DevTools listening'))
         .timeout(Duration(seconds: 60),
             onTimeout: () =>
                 throw Exception('Unable to connect to Chrome DevTools.'));
-
-    // The DevToolsActivePort file is only written if 0 is provided.
-    if (port == 0) {
-      if (!activePortFile.existsSync()) {
-        throw ChromeError("Can't read DevToolsActivePort file.");
-      }
-      port = int.parse(activePortFile.readAsLinesSync().first);
-    }
 
     return _connect(Chrome._(
       port,
       ChromeConnection('localhost', port),
       process: process,
+      dataDir: dataDir,
     ));
   }
 
@@ -158,8 +145,9 @@ class Chrome {
   Future<void> close() async {
     if (_currentCompleter.isCompleted) _currentCompleter = Completer<Chrome>();
     chromeConnection.close();
-    _process?.kill();
+    _process?.kill(ProcessSignal.sigkill);
     await _process?.exitCode;
+    await _dataDir?.delete(recursive: true);
   }
 }
 
@@ -169,4 +157,22 @@ class ChromeError extends Error {
 
   @override
   String toString() => 'ChromeError: $details';
+}
+
+/// Returns a port that is probably, but not definitely, not in use.
+///
+/// This has a built-in race condition: another process may bind this port at
+/// any time after this call has returned.
+Future<int> findUnusedPort() async {
+  int port;
+  ServerSocket socket;
+  try {
+    socket =
+        await ServerSocket.bind(InternetAddress.loopbackIPv6, 0, v6Only: true);
+  } on SocketException {
+    socket = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+  }
+  port = socket.port;
+  await socket.close();
+  return port;
 }
