@@ -1,7 +1,10 @@
+## 0.1.5
+
+- Add a parameter to use a specified user-data-dir instead of a system temp.
+
 ## 0.1.4
 
 - Start Chrome maximized.
-- Add a parameter to use a specified user-data-dir instead of a system temp.
 
 ## 0.1.3
 
