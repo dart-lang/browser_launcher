@@ -3,7 +3,6 @@ description: Provides a standardized way to launch web browsers for testing and 
 
 version: 0.1.7
 
-author: Dart Team <misc@dartlang.org>
 homepage: https://github.com/dart-lang/browser_launcher
 
 environment:
