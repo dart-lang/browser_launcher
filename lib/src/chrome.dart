@@ -95,13 +95,21 @@ class Chrome {
     final process = await _startProcess(urls, args: args);
 
     // Wait until the DevTools are listening before trying to connect.
-    await process.stderr
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .firstWhere((line) => line.startsWith('DevTools listening'))
-        .timeout(Duration(seconds: 60),
-            onTimeout: () =>
-                throw Exception('Unable to connect to Chrome DevTools.'));
+    var _errorLines = <String>[];
+    try {
+      await process.stderr
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .firstWhere((line) {
+        _errorLines.add(line);
+        return line.startsWith('DevTools listening');
+      }).timeout(Duration(seconds: 60),
+              onTimeout: () =>
+                  throw Exception('Unable to connect to Chrome DevTools.'));
+    } catch (_) {
+      print(_errorLines);
+      rethrow;
+    }
 
     return _connect(Chrome._(
       port,
