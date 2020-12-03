@@ -7,8 +7,11 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+
+    env:
+      DISPLAY: ':99'
 
     steps:
       - uses: actions/checkout@v2
@@ -31,10 +34,8 @@ jobs:
       - name: Analyze project source
         run: dart analyze
 
-      - name: Install XVFB
-        run: sudo apt-get install xvfb
-      - name: Run XVFB
-        run: nohup xvfb-run :99 > /dev/null 2>&1 &
+      - name: Run Xvfb 
+        run: Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
 
       # Your project will need to have tests in test/ and a dependency on
       # package:test for this step to succeed. Note that Flutter projects will
