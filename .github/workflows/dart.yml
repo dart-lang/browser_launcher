@@ -8,17 +8,14 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
-
-    # Note that this workflow uses the latest stable version of the Dart SDK.
-    # Docker images for other release channels - like dev and beta - are also
-    # available. See https://hub.docker.com/r/google/dart/ for the available
-    # images.
-    container:
-      image:  google/dart:latest
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
+      - uses: cedx/setup-dart@v2
+        with:
+          release-channel: stable
+          version: latest
 
       - name: Print Dart SDK version
         run: dart --version
