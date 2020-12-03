@@ -103,12 +103,11 @@ class Chrome {
           .firstWhere((line) {
         _errorLines.add(line);
         return line.startsWith('DevTools listening');
-      }).timeout(Duration(seconds: 60),
-              onTimeout: () =>
-                  throw Exception('Unable to connect to Chrome DevTools.'));
+      }).timeout(Duration(seconds: 60));
     } catch (_) {
-      print(_errorLines);
-      rethrow;
+      throw Exception('Unable to connect to Chrome DevTools.\n\n'
+              'Chrome STDERR:\n' +
+          _errorLines.join('\n'));
     }
 
     return _connect(Chrome._(
