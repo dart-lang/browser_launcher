@@ -28,7 +28,7 @@ jobs:
       - run: dart pub get
         id: install
 
-      - run: dart analyze
+      - run: dart analyze --fatal-infos
 
       - name: Run Xvfb 
         run: Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
