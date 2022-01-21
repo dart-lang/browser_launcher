@@ -73,18 +73,21 @@ void main() {
 
     for (var signIn in [false, true]) {
       group('and signIn = $signIn', () {
-        setUpAll(() {
+        setUp(() {
           dataDir = Directory.systemTemp.createTempSync(_userDataDirName);
         });
 
-        tearDownAll(() {
-          var deleted = false;
+        tearDown(() async {
           var attempts = 0;
-          while (!deleted && attempts++ < 3) {
+          while (true) {
             try {
+              attempts++;
+              await Future.delayed(const Duration(milliseconds: 100));
               dataDir.deleteSync(recursive: true);
-              deleted = true;
-            } catch (_) {}
+              break;
+            } catch (_) {
+              if (attempts > 3) rethrow;
+            }
           }
         });
 
