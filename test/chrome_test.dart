@@ -33,39 +33,41 @@ void main() {
     await Chrome.start([_googleUrl]);
   }
 
-  tearDown(() async {
-    await chrome?.close();
-    chrome = null;
-  });
+  group('chrome with temp data dir', () {
+    tearDown(() async {
+      await chrome?.close();
+      chrome = null;
+    });
 
-  test('can launch chrome', () async {
-    await launchChrome();
-    expect(chrome, isNull);
-  });
+    test('can launch chrome', () async {
+      await launchChrome();
+      expect(chrome, isNull);
+    });
 
-  test('can launch chrome with debug port', () async {
-    await launchChromeWithDebugPort();
-    expect(chrome, isNotNull);
-  });
+    test('can launch chrome with debug port', () async {
+      await launchChromeWithDebugPort();
+      expect(chrome, isNotNull);
+    });
 
-  test('debugger is working', () async {
-    await launchChromeWithDebugPort();
-    var tabs = await chrome!.chromeConnection.getTabs();
-    expect(
-        tabs,
-        contains(const TypeMatcher<ChromeTab>()
-            .having((t) => t.url, 'url', _googleUrl)));
-  });
+    test('has a working debugger', () async {
+      await launchChromeWithDebugPort();
+      var tabs = await chrome!.chromeConnection.getTabs();
+      expect(
+          tabs,
+          contains(const TypeMatcher<ChromeTab>()
+              .having((t) => t.url, 'url', _googleUrl)));
+    });
 
-  test('uses open debug port if provided port is 0', () async {
-    await launchChromeWithDebugPort(port: 0);
-    expect(chrome!.debugPort, isNot(equals(0)));
-  });
+    test('uses open debug port if provided port is 0', () async {
+      await launchChromeWithDebugPort(port: 0);
+      expect(chrome!.debugPort, isNot(equals(0)));
+    });
 
-  test('can provide a specific debug port', () async {
-    var port = await findUnusedPort();
-    await launchChromeWithDebugPort(port: port);
-    expect(chrome!.debugPort, port);
+    test('can provide a specific debug port', () async {
+      var port = await findUnusedPort();
+      await launchChromeWithDebugPort(port: port);
+      expect(chrome!.debugPort, port);
+    });
   });
 
   group('chrome with user data dir', () {
@@ -78,6 +80,9 @@ void main() {
         });
 
         tearDown(() async {
+          await chrome?.close();
+          chrome = null;
+
           var attempts = 0;
           while (true) {
             try {
