@@ -78,7 +78,14 @@ void main() {
         });
 
         tearDownAll(() {
-          dataDir.deleteSync(recursive: true);
+          var deleted = false;
+          var attempts = 0;
+          while (!deleted && attempts++ < 3) {
+            try {
+              dataDir.deleteSync(recursive: true);
+              deleted = true;
+            } catch (_) {}
+          }
         });
 
         test('can launch with debug port', () async {
