@@ -66,11 +66,11 @@ class Chrome {
   ///
   /// Each url in [urls] will be loaded in a separate tab.
   ///
-  /// If [userDataDir] is null, a new temp directory will be
+  /// If [userDataDir] is `null`, a new temp directory will be
   /// passed to chrome as a user data directory. Chrome will
   /// start without sign in and with extensions disabled.
   ///
-  /// If [userDataDir] is not null, it will be passed to chrome
+  /// If [userDataDir] is not `null`, it will be passed to chrome
   /// as a user data directory. Chrome will start signed into
   /// the default profile with extensions enabled if [signIn]
   /// is also true.
