@@ -123,7 +123,8 @@ Future<String> _evaluateExpression(WipPage page, String expression) async {
       'Runtime.evaluate',
       params: {'expression': expression},
     );
-    result = wipResponse.json['result']['result']['value'] as String;
+    var value = wipResponse.json['result']['result']['value'];
+    result = (value != null && value is String) ? value : '';
   }
   return result;
 }
