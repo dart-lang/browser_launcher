@@ -34,6 +34,10 @@ void main() {
         retryFor: const Duration(seconds: 5),
       );
 
+  Future<List<ChromeTab>?> getTabs() => chrome!.chromeConnection.getTabs(
+        retryFor: const Duration(seconds: 5),
+      );
+
   Future<WipConnection> connectToTab(String url) async {
     final tab = await getTab(url);
     expect(tab, isNotNull);
@@ -62,7 +66,11 @@ void main() {
     await Chrome.start([_googleUrl], args: [if (headless) '--headless']);
   }
 
-  final headlessModes = headlessOnlyEnvironment ? [true] : [true, false];
+  final headlessModes = [
+    true,
+    if (!headlessOnlyEnvironment) false,
+  ];
+
   for (var headless in headlessModes) {
     group('(headless: $headless)', () {
       group('chrome with temp data dir', () {
@@ -83,15 +91,7 @@ void main() {
 
         test('has a working debugger', () async {
           await launchChromeWithDebugPort(headless: headless);
-
-          const waitMilliseconds = Duration(milliseconds: 1000);
-          const retryMilliseconds = Duration(milliseconds: 1000);
-
-          // Wait for debugger to start.
-          await Future<dynamic>.delayed(waitMilliseconds);
-
-          final tabs = await chrome!.chromeConnection
-              .getTabs(retryFor: retryMilliseconds);
+          final tabs = await getTabs();
           expect(
             tabs,
             contains(
@@ -155,7 +155,7 @@ void main() {
                 signIn: signIn,
                 headless: headless,
               );
-              final tabs = await chrome!.chromeConnection.getTabs();
+              final tabs = await getTabs();
               expect(
                 tabs,
                 contains(
