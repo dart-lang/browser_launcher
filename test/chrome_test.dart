@@ -194,9 +194,9 @@ String _openTabUrl(String url) => '/json/new?$url';
 
 Future<String?> _evaluate(WipPage page, String expression) async {
   String? result;
-  const stopInMilliseconds = Duration(milliseconds: 1000);
+  const stopInSeconds = Duration(seconds: 5);
   const waitMilliseconds = Duration(milliseconds: 100);
-  final stopTime = DateTime.now().add(stopInMilliseconds);
+  final stopTime = DateTime.now().add(stopInSeconds);
 
   while (result == null && DateTime.now().isBefore(stopTime)) {
     await Future<dynamic>.delayed(waitMilliseconds);
