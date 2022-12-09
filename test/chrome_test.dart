@@ -175,6 +175,8 @@ void main() {
                 );
                 await openTab(_chromeVersionUrl);
                 final wipConnection = await connectToTab(_chromeVersionUrl);
+                await wipConnection.debugger.enable();
+                await wipConnection.runtime.enable();
                 final result = await _evaluate(
                   wipConnection.page,
                   "document.getElementById('profile_path').textContent",
