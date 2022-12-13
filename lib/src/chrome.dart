@@ -47,7 +47,7 @@ String get _executable {
 
 /// Manager for an instance of Chrome.
 class Chrome {
-  static final _logger = Logger('CHROME');
+  static final _logger = Logger('BROWSER_LAUNCHER.CHROME');
 
   Chrome._(
     this.debugPort,
@@ -135,7 +135,7 @@ class Chrome {
         errorLines.add(line);
         return line.startsWith('DevTools listening');
       }).timeout(const Duration(seconds: 60));
-    } catch (e, s) {
+    } on TimeoutException catch (e, s) {
       _logger.severe('Unable to connect to Chrome DevTools', e, s);
       throw Exception(
         'Unable to connect to Chrome DevTools: $e.\n\n'
