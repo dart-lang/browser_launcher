@@ -1,4 +1,4 @@
-## 1.1.2-wip
+## 1.1.2
 
 - Require Dart 3.4
 - Log errors from chrome
